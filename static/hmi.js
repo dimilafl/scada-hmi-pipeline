@@ -1,5 +1,8 @@
 const API_BASE = "http://localhost:8000"; // adjust if needed
 
+const pt101History = [];
+const PT101_HISTORY_LIMIT = 20;
+
 async function fetchPoints() {
   const resp = await fetch(`${API_BASE}/api/points`);
   if (!resp.ok) {
@@ -31,7 +34,21 @@ function renderPoints(points) {
       <td>${pt.timestamp || ""}</td>
     `;
     tbody.appendChild(tr);
+
+    // Track PT_101 values for trend display
+    if (pt.tag === "PT_101") {
+      pt101History.push(pt.value);
+      if (pt101History.length > PT101_HISTORY_LIMIT) {
+        pt101History.shift();
+      }
+    }
   });
+
+  // Render PT_101 trend
+  const trendEl = document.getElementById("pt101-trend");
+  if (trendEl) {
+    trendEl.textContent = pt101History.join(", ");
+  }
 }
 
 function alarmToClass(alarmState, quality) {
