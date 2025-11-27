@@ -57,6 +57,22 @@ The project consists of these key components:
 - **`static/hmi.html`** – Minimal HMI table and controls
 - **`static/hmi.js`** – Tag-binding logic: polls `/api/points`, colors rows by quality/alarm, sends valve commands
 
+### Modbus Ingestion (Field → Point Database)
+
+This repository also includes a minimal Modbus-TCP ingestion path:
+
+- **`modbus_sim_server.py`** – Modbus-TCP simulator exposing holding registers:
+  - 40001 → PT_101 (value * 10)
+  - 40002 → FT_201 (value * 10)
+- **`modbus_poller.py`** – Modbus client that polls the simulator and writes into the SCADA API:
+  - Reads holding registers 40001–40002 from `127.0.0.1:5020`
+  - Scales raw register values to engineering units
+  - Calls `POST /api/points/PT_101` and `/api/points/FT_201`
+
+This demonstrates the typical SCADA pattern:
+
+**Field device (Modbus) → Protocol stack → Point database → HMI.**
+
 ## SCADA Concept Mapping
 
 This project maps core SCADA concepts to simple software implementations:
@@ -78,6 +94,34 @@ This project maps core SCADA concepts to simple software implementations:
 3. **Trigger alarms**: Edit `points_state.json` and set `PT_101.value` to `1300.0` (above `alarm_high` of 1200.0). Save and watch the row turn red on the next poll.
 
 4. **Test quality indicators**: Change any point's `quality` field to `BAD` and observe the row color change.
+
+## Running the Modbus Demo
+
+In three terminals:
+
+1. **Start the FastAPI SCADA API:**
+
+```bash
+uvicorn main:app --reload
+```
+
+2. **Start the Modbus-TCP simulator:**
+
+```bash
+python modbus_sim_server.py
+```
+
+3. **Start the Modbus poller:**
+
+```bash
+python modbus_poller.py
+```
+
+Then open the HMI:
+
+http://127.0.0.1:8000/static/hmi.html
+
+You should see PT_101 and FT_201 values updating from Modbus via the poller.
 
 ## Next Expansions
 
