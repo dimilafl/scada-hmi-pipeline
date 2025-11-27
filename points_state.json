@@ -1,0 +1,17 @@
+{
+  "PT_101": {
+    "value": 750.0,
+    "quality": "GOOD",
+    "timestamp": "2025-01-01T00:00:00Z"
+  },
+  "FT_201": {
+    "value": 200.0,
+    "quality": "GOOD",
+    "timestamp": "2025-01-01T00:00:00Z"
+  },
+  "VALVE_1_CMD": {
+    "value": 0,
+    "quality": "GOOD",
+    "timestamp": "2025-01-01T00:00:00Z"
+  }
+}

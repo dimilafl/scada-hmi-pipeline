@@ -1,0 +1,32 @@
+[
+  {
+    "tag": "PT_101",
+    "description": "Inlet Gas Pressure",
+    "datatype": "float",
+    "eng_unit": "psi",
+    "low_limit": 0.0,
+    "high_limit": 1500.0,
+    "alarm_low": 200.0,
+    "alarm_high": 1200.0
+  },
+  {
+    "tag": "FT_201",
+    "description": "Flow Rate",
+    "datatype": "float",
+    "eng_unit": "MSCFD",
+    "low_limit": 0.0,
+    "high_limit": 500.0,
+    "alarm_low": 50.0,
+    "alarm_high": 450.0
+  },
+  {
+    "tag": "VALVE_1_CMD",
+    "description": "Valve 1 Command",
+    "datatype": "bool",
+    "eng_unit": "OPEN=1/CLOSE=0",
+    "low_limit": 0,
+    "high_limit": 1,
+    "alarm_low": null,
+    "alarm_high": null
+  }
+]

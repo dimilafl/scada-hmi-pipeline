@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mini SCADA HMI</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+    .point-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .point-table th, .point-table td {
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      text-align: left;
+    }
+    .quality-bad {
+      background-color: #fdd;
+    }
+    .alarm-high, .alarm-low {
+      background-color: #fbb;
+    }
+    .normal {
+      background-color: #dfd;
+    }
+    .command-row {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mini SCADA HMI</h1>
+
+  <table class="point-table" id="points-table">
+    <thead>
+      <tr>
+        <th>Tag</th>
+        <th>Description</th>
+        <th>Value</th>
+        <th>EU</th>
+        <th>Quality</th>
+        <th>Alarm</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody id="points-body">
+      <!-- Rows filled by JS -->
+    </tbody>
+  </table>
+
+  <div class="command-row">
+    <h2>Valve Command</h2>
+    <button id="valve-open">Open Valve (VALVE_1_CMD = 1)</button>
+    <button id="valve-close">Close Valve (VALVE_1_CMD = 0)</button>
+    <span id="valve-status"></span>
+  </div>
+
+  <script src="/static/hmi.js"></script>
+</body>
+</html>
