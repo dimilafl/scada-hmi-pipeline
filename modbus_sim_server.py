@@ -1,8 +1,7 @@
-from pymodbus.server.sync import StartTcpServer
-from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
+from pymodbus.server import StartTcpServer
+from pymodbus.datastore import ModbusDeviceContext, ModbusServerContext
 from pymodbus.datastore import ModbusSequentialDataBlock
-from pymodbus.device import ModbusDeviceIdentification
-from pymodbus.transaction import ModbusRtuFramer, ModbusBinaryFramer
+from pymodbus.server.server import ModbusDeviceIdentification
 
 import logging
 
@@ -15,10 +14,10 @@ def run_server():
     # Holding registers:
     # 40001: PT_101 value * 10 (e.g., 750.0 psi -> 7500)
     # 40002: FT_201 value * 10
-    store = ModbusSlaveContext(
+    store = ModbusDeviceContext(
         hr=ModbusSequentialDataBlock(0, [7500, 2000])
     )
-    context = ModbusServerContext(slaves=store, single=True)
+    context = ModbusServerContext(devices={1: store}, single=True)
 
     identity = ModbusDeviceIdentification()
     identity.VendorName = "Demo"
