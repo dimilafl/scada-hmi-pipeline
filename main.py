@@ -9,6 +9,7 @@ import os
 
 SCHEMA_PATH = "points_schema.json"
 STATE_PATH = "points_state.json"
+HISTORY_DIR = "history"
 
 app = FastAPI()
 
@@ -75,6 +76,56 @@ def compute_alarm_state(tag: str, value: Any, schema: Dict[str, Any]) -> str:
     if high is not None and v > high:
         return "ALARM_HIGH"
     return "NORMAL"
+
+
+def ensure_history_dir():
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+
+
+def history_file_for_tag(tag: str) -> str:
+    ensure_history_dir()
+    # Simple per-tag JSON file
+    safe_tag = tag.replace("/", "_")
+    return os.path.join(HISTORY_DIR, f"{safe_tag}.json")
+
+
+def append_history_record(tag: str, record: Dict[str, Any]) -> None:
+    path = history_file_for_tag(tag)
+    try:
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
+        else:
+            data = []
+    except Exception:
+        data = []
+
+    data.append(record)
+    # keep only the last 500 samples per tag to avoid unbounded growth
+    if len(data) > 500:
+        data = data[-500:]
+
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def read_history(tag: str, limit: int = 50) -> Dict[str, Any]:
+    path = history_file_for_tag(tag)
+    if not os.path.exists(path):
+        return {"tag": tag, "samples": []}
+
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except Exception:
+        data = []
+
+    # return most recent first
+    samples = data[-limit:]
+    return {
+        "tag": tag,
+        "samples": samples
+    }
 
 
 # ---------- API endpoints ----------
@@ -163,6 +214,14 @@ def update_point(tag: str, update: PointUpdate):
 
     alarm_state = compute_alarm_state(tag, update.value, schema)
 
+    # append to historian
+    append_history_record(tag, {
+        "timestamp": now,
+        "value": update.value,
+        "quality": update.quality,
+        "alarm_state": alarm_state,
+    })
+
     return {
         "tag": tag,
         "value": update.value,
@@ -170,3 +229,13 @@ def update_point(tag: str, update: PointUpdate):
         "timestamp": now,
         "alarm_state": alarm_state
     }
+
+
+@app.get("/api/history/{tag}")
+def get_history(tag: str, limit: int = 50):
+    # Simple historian read
+    try:
+        result = read_history(tag, limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading history for {tag}: {e}")
+    return result

@@ -73,6 +73,21 @@ This demonstrates the typical SCADA pattern:
 
 **Field device (Modbus) → Protocol stack → Point database → HMI.**
 
+### Historian (Point Updates → Time Series)
+
+To illustrate historian behavior without introducing an external database, this project logs point updates into simple per-tag JSON files:
+
+- **`history/`** – directory containing per-tag history files (e.g. `history/PT_101.json`)
+- On every `POST /api/points/{tag}`, the backend:
+  - Computes `alarm_state`
+  - Appends a record `{ timestamp, value, quality, alarm_state }` to the tag's history file
+  - Keeps only the latest 500 samples per tag
+
+A dedicated endpoint exposes recent history:
+
+- **`GET /api/history/{tag}?limit=50`**
+  Returns the latest samples for the tag in time order.
+
 ## SCADA Concept Mapping
 
 This project maps core SCADA concepts to simple software implementations:
@@ -122,6 +137,15 @@ Then open the HMI:
 http://127.0.0.1:8000/static/hmi.html
 
 You should see PT_101 and FT_201 values updating from Modbus via the poller.
+
+## Historian Demo (PT_101)
+
+With the FastAPI server and Modbus pipeline running:
+
+1. Open the HMI at `http://127.0.0.1:8000/static/hmi.html`
+2. Use the "Refresh PT_101 History" button to load the last 50 samples from:
+   - `GET /api/history/PT_101?limit=50`
+3. Watch the history panel update as Modbus-driven values change over time.
 
 ## Next Expansions
 
