@@ -57,6 +57,37 @@ The project consists of these key components:
 - **`static/hmi.html`** – Minimal HMI table and controls
 - **`static/hmi.js`** – Tag-binding logic: polls `/api/points`, colors rows by quality/alarm, sends valve commands
 
+### Modbus Ingestion (Field → Point Database)
+
+This repository also includes a minimal Modbus-TCP ingestion path:
+
+- **`modbus_sim_server.py`** – Modbus-TCP simulator exposing holding registers:
+  - 40001 → PT_101 (value * 10)
+  - 40002 → FT_201 (value * 10)
+- **`modbus_poller.py`** – Modbus client that polls the simulator and writes into the SCADA API:
+  - Reads holding registers 40001–40002 from `127.0.0.1:5020`
+  - Scales raw register values to engineering units
+  - Calls `POST /api/points/PT_101` and `/api/points/FT_201`
+
+This demonstrates the typical SCADA pattern:
+
+**Field device (Modbus) → Protocol stack → Point database → HMI.**
+
+### Historian (Point Updates → Time Series)
+
+To illustrate historian behavior without introducing an external database, this project logs point updates into simple per-tag JSON files:
+
+- **`history/`** – directory containing per-tag history files (e.g. `history/PT_101.json`)
+- On every `POST /api/points/{tag}`, the backend:
+  - Computes `alarm_state`
+  - Appends a record `{ timestamp, value, quality, alarm_state }` to the tag's history file
+  - Keeps only the latest 500 samples per tag
+
+A dedicated endpoint exposes recent history:
+
+- **`GET /api/history/{tag}?limit=50`**
+  Returns the latest samples for the tag in time order.
+
 ## SCADA Concept Mapping
 
 This project maps core SCADA concepts to simple software implementations:
@@ -78,6 +109,43 @@ This project maps core SCADA concepts to simple software implementations:
 3. **Trigger alarms**: Edit `points_state.json` and set `PT_101.value` to `1300.0` (above `alarm_high` of 1200.0). Save and watch the row turn red on the next poll.
 
 4. **Test quality indicators**: Change any point's `quality` field to `BAD` and observe the row color change.
+
+## Running the Modbus Demo
+
+In three terminals:
+
+1. **Start the FastAPI SCADA API:**
+
+```bash
+uvicorn main:app --reload
+```
+
+2. **Start the Modbus-TCP simulator:**
+
+```bash
+python modbus_sim_server.py
+```
+
+3. **Start the Modbus poller:**
+
+```bash
+python modbus_poller.py
+```
+
+Then open the HMI:
+
+http://127.0.0.1:8000/static/hmi.html
+
+You should see PT_101 and FT_201 values updating from Modbus via the poller.
+
+## Historian Demo (PT_101)
+
+With the FastAPI server and Modbus pipeline running:
+
+1. Open the HMI at `http://127.0.0.1:8000/static/hmi.html`
+2. Use the "Refresh PT_101 History" button to load the last 50 samples from:
+   - `GET /api/history/PT_101?limit=50`
+3. Watch the history panel update as Modbus-driven values change over time.
 
 ## Next Expansions
 
