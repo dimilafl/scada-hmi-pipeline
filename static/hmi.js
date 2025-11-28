@@ -14,6 +14,41 @@ async function fetchPoints() {
   renderPoints(data.points);
 }
 
+async function fetchPt101History(limit = 50) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/history/PT_101?limit=${limit}`);
+    if (!resp.ok) {
+      console.error("Failed to fetch PT_101 history", resp.status);
+      return;
+    }
+    const data = await resp.json();
+    renderPt101History(data.samples || []);
+  } catch (e) {
+    console.error("Error fetching PT_101 history", e);
+  }
+}
+
+function renderPt101History(samples) {
+  const trendEl = document.getElementById("pt101-trend");
+  if (!trendEl) return;
+
+  if (!samples.length) {
+    trendEl.textContent = "No history available.";
+    return;
+  }
+
+  // Render as simple timestamp:value rows
+  const lines = samples.map(s => {
+    const ts = s.timestamp || "";
+    const val = s.value;
+    const q = s.quality || "";
+    const alarm = s.alarm_state || "";
+    return `${ts}  value=${val}  quality=${q}  alarm=${alarm}`;
+  });
+
+  trendEl.textContent = lines.join("\n");
+}
+
 function renderPoints(points) {
   const tbody = document.getElementById("points-body");
   tbody.innerHTML = "";
@@ -36,7 +71,7 @@ function renderPoints(points) {
     `;
     tbody.appendChild(tr);
 
-    // Track PT_101 values for trend display
+    // Track PT_101 values for live chart
     if (pt.tag === "PT_101") {
       pt101History.push(pt.value);
       if (pt101History.length > PT101_HISTORY_LIMIT) {
@@ -45,8 +80,8 @@ function renderPoints(points) {
     }
   });
 
-  // Render PT_101 trend
-  renderPt101Trend();
+  // Update live chart with in-memory data
+  updatePt101Chart();
 }
 
 function alarmToClass(alarmState, quality) {
@@ -86,12 +121,7 @@ function initPt101Chart() {
   });
 }
 
-function renderPt101Trend() {
-  const trendEl = document.getElementById("pt101-trend");
-  if (trendEl) {
-    trendEl.textContent = pt101History.join(", ");
-  }
-
+function updatePt101Chart() {
   if (pt101Chart) {
     const labels = pt101History.map((_, i) => i.toString());
     pt101Chart.data.labels = labels;
@@ -140,5 +170,16 @@ window.addEventListener("DOMContentLoaded", () => {
   initPt101Chart();
   document.getElementById("valve-open").addEventListener("click", () => commandValve(1));
   document.getElementById("valve-close").addEventListener("click", () => commandValve(0));
+
+  const refreshBtn = document.getElementById("pt101-refresh");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      fetchPt101History(50);
+    });
+  }
+
+  // Initial load of PT_101 history
+  fetchPt101History(50);
+
   startPolling();
 });
