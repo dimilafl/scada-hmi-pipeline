@@ -1,5 +1,9 @@
 const API_BASE = "http://localhost:8000"; // adjust if needed
 
+const pt101History = [];
+const PT101_HISTORY_LIMIT = 20;
+let pt101Chart = null;
+
 async function fetchPoints() {
   const resp = await fetch(`${API_BASE}/api/points`);
   if (!resp.ok) {
@@ -66,7 +70,18 @@ function renderPoints(points) {
       <td>${pt.timestamp || ""}</td>
     `;
     tbody.appendChild(tr);
+
+    // Track PT_101 values for live chart
+    if (pt.tag === "PT_101") {
+      pt101History.push(pt.value);
+      if (pt101History.length > PT101_HISTORY_LIMIT) {
+        pt101History.shift();
+      }
+    }
   });
+
+  // Update live chart with in-memory data
+  updatePt101Chart();
 }
 
 function alarmToClass(alarmState, quality) {
@@ -80,6 +95,39 @@ function alarmToClass(alarmState, quality) {
     return "normal";
   }
   return "";
+}
+
+function initPt101Chart() {
+  const ctx = document.getElementById("pt101-chart");
+  if (!ctx) return;
+
+  pt101Chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],       // will fill from history length
+      datasets: [{
+        label: "PT_101 (psi)",
+        data: [],
+        tension: 0.2,
+      }],
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true },
+      },
+    },
+  });
+}
+
+function updatePt101Chart() {
+  if (pt101Chart) {
+    const labels = pt101History.map((_, i) => i.toString());
+    pt101Chart.data.labels = labels;
+    pt101Chart.data.datasets[0].data = pt101History;
+    pt101Chart.update();
+  }
 }
 
 async function commandValve(value) {
@@ -119,6 +167,7 @@ function startPolling() {
 
 // wire up buttons
 window.addEventListener("DOMContentLoaded", () => {
+  initPt101Chart();
   document.getElementById("valve-open").addEventListener("click", () => commandValve(1));
   document.getElementById("valve-close").addEventListener("click", () => commandValve(0));
 
